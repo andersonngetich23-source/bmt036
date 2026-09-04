@@ -1,0 +1,49 @@
+name: Deploy dTrader White-Label
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install --no-frozen-lockfile
+      - name: Build
+        run: pnpm run build:all
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+      - name: Find where it built
+        id: find
+        run: |
+          echo "Looking for index.html in dist/build folders..."
+          FOUND=$(find. -type f -name "index.html" | grep -E "dist|build" | grep -v "node_modules" | head -n 1)
+          echo "Found file: $FOUND"
+          DIR=$(dirname "$FOUND")
+          echo "Found dir: $DIR"
+          echo "dir=$DIR" >> $GITHUB_OUTPUT
+          ls -lh "$DIR" | head -20
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.find.outputs.dir }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
