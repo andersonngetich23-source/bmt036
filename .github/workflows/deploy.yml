@@ -21,9 +21,26 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=8192
           CI: false
+      - name: Find and prepare site
+        run: |
+          echo "=== Listing all dist ==="
+          ls -R packages/*/dist 2>/dev/null | head -n 100
+          echo "=== Searching index.html ==="
+          find. -type f -name "index.html" | grep -E "/dist/" | grep -v node_modules
+          SRC=$(find. -type f -name "index.html" | grep -E "/dist/" | grep -v node_modules | head -n 1 | xargs dirname)
+          echo "Found SRC=$SRC"
+          if [ -z "$SRC" ]; then
+            echo "No dist found! trying./dist"
+            SRC=./dist
+          fi
+          mkdir -p./site
+          cp -r $SRC/*./site/
+          cp -r $SRC/.*./site/ 2>/dev/null || true
+          ls -lh./site/
+          test -f./site/index.html && echo "index.html FOUND" || echo "index.html MISSING"
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./packages/trader/dist
+          path: ./site
   deploy:
     needs: build
     runs-on: ubuntu-latest
