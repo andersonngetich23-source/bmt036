@@ -17,39 +17,13 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm install
-      - name: Build
-        run: npm run build:all
+      - run: npm run build:all
         env:
           NODE_OPTIONS: --max-old-space-size=8192
           CI: false
-      - name: Prepare site for Pages
-        run: |
-          echo "=== All index.html files ==="
-          find. -type f -name "index.html" | grep -v node_modules
-          echo "=== Searching trader dist ==="
-          # Try common locations
-          SRC=""
-          for p in "./packages/trader/dist" "./packages/dtrader/dist" "./packages/trading/dist" "./dist" "./build"; do
-            if [ -f "$p/index.html" ]; then
-              SRC=$p
-              break
-            fi
-          done
-          if [ -z "$SRC" ]; then
-            # fallback: find first dist with index.html
-            SRC=$(find packages -type f -name "index.html" | grep "/dist/" | head -n 1 | xargs dirname)
-          fi
-          echo "Using source: $SRC"
-          ls -lh "$SRC"
-          mkdir -p./site
-          cp -r $SRC/*./site/
-          echo "=== Final site ==="
-          ls -lh./site | head -20
-          test -f./site/index.html && echo "index.html FOUND - will not 404" || echo "NO index.html - STILL WILL 404"
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./site
-
+          path: ./packages/trader/dist
   deploy:
     needs: build
     runs-on: ubuntu-latest
