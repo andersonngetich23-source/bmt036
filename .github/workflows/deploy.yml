@@ -16,38 +16,39 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-
-      - name: Install with NPM
-        run: npm install
-
+      - run: npm install
       - name: Build
         run: npm run build:all
         env:
           NODE_OPTIONS: --max-old-space-size=8192
           CI: false
-
-      - name: Find build output
-        id: find
+      - name: Prepare site for Pages
         run: |
-          echo "Searching build..."
-          find. -type f -name "index.html" | grep -v node_modules | head -20
-          DIR=$(find. -path "*/trader/dist" -type d | head -n 1)
-          if [ -z "$DIR" ]; then
-            DIR=$(find. -path "*/dist" -type d | grep trader | head -n 1)
+          echo "=== All index.html files ==="
+          find. -type f -name "index.html" | grep -v node_modules
+          echo "=== Searching trader dist ==="
+          # Try common locations
+          SRC=""
+          for p in "./packages/trader/dist" "./packages/dtrader/dist" "./packages/trading/dist" "./dist" "./build"; do
+            if [ -f "$p/index.html" ]; then
+              SRC=$p
+              break
+            fi
+          done
+          if [ -z "$SRC" ]; then
+            # fallback: find first dist with index.html
+            SRC=$(find packages -type f -name "index.html" | grep "/dist/" | head -n 1 | xargs dirname)
           fi
-          if [ -z "$DIR" ]; then
-            DIR=$(find packages -name "dist" -type d | head -n 1)
-          fi
-          if [ -z "$DIR" ]; then
-            DIR="./dist"
-          fi
-          echo "Using DIR=$DIR"
-          echo "dir=$DIR" >> $GITHUB_OUTPUT
-          ls -lh "$DIR" | head -30
-
+          echo "Using source: $SRC"
+          ls -lh "$SRC"
+          mkdir -p./site
+          cp -r $SRC/*./site/
+          echo "=== Final site ==="
+          ls -lh./site | head -20
+          test -f./site/index.html && echo "index.html FOUND - will not 404" || echo "NO index.html - STILL WILL 404"
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{ steps.find.outputs.dir }}
+          path:./site
 
   deploy:
     needs: build
