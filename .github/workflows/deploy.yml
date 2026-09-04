@@ -12,28 +12,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: pnpm install --no-frozen-lockfile
+          cache: 'npm'
+
+      - name: Install with NPM
+        run: npm install
+
       - name: Build
-        run: pnpm run build:all
+        run: npm run build:all
         env:
           NODE_OPTIONS: --max-old-space-size=8192
-      - name: Find where it built
+          CI: false
+
+      - name: Find build output
         id: find
         run: |
-          echo "Looking for index.html in dist/build folders..."
-          FOUND=$(find. -type f -name "index.html" | grep -E "dist|build" | grep -v "node_modules" | head -n 1)
-          echo "Found file: $FOUND"
-          DIR=$(dirname "$FOUND")
-          echo "Found dir: $DIR"
+          echo "Searching build..."
+          find. -type f -name "index.html" | grep -v node_modules | head -20
+          DIR=$(find. -path "*/trader/dist" -type d | head -n 1)
+          if [ -z "$DIR" ]; then
+            DIR=$(find. -path "*/dist" -type d | grep trader | head -n 1)
+          fi
+          if [ -z "$DIR" ]; then
+            DIR=$(find packages -name "dist" -type d | head -n 1)
+          fi
+          if [ -z "$DIR" ]; then
+            DIR="./dist"
+          fi
+          echo "Using DIR=$DIR"
           echo "dir=$DIR" >> $GITHUB_OUTPUT
-          ls -lh "$DIR" | head -20
+          ls -lh "$DIR" | head -30
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ steps.find.outputs.dir }}
