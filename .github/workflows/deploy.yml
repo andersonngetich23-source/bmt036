@@ -48,7 +48,7 @@ jobs:
           test -f./site/index.html && echo "index.html FOUND - will not 404" || echo "NO index.html - STILL WILL 404"
       - uses: actions/upload-pages-artifact@v3
         with:
-          path:./site
+          path: ./site
 
   deploy:
     needs: build
