@@ -1,0 +1,30 @@
+name: Import Your Forked Template Files
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Copy files from deriv-app template
+        run: |
+          rm -rf /tmp/template
+          git clone --depth=1 https://github.com/deriv-com/deriv-app.git /tmp/template
+          rsync -av --exclude='.git' --exclude='.github' /tmp/template/ ./ 
+          rm -rf /tmp/template
+          ls -la
+          echo "package.json exists?" 
+          ls package.json || echo "STILL NO package.json - template structure different"
+
+      - name: Commit files to your repo
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Import forked deriv template files" || echo "Nothing to commit"
+          git push
