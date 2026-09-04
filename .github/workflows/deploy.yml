@@ -26,7 +26,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build White-Label dTrader
-        run: pnpm run build
+        run: pnpm run build:all
         env:
           NODE_OPTIONS: --max-old-space-size=8192
           VITE_PUBLIC_PATH: /bmt036/
@@ -34,14 +34,17 @@ jobs:
 
       - name: Find dist folder
         run: |
-          ls -la
-          find . -type d -name "dist" | head -20
-          echo "--- packages ---"
-          ls packages/ || true
+          echo "Finding dist..."
+          find . -type d -name "dist" -o -name "build" | grep -E "dist|build" | head -30
+          ls -la ./dist 2|| true
+          ls -la ./packages/*/dist 2|| true
+          ls -la ./packages/trader/dist 2|| true
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Upload Pages
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          # Most white-label templates output to packages/trader/dist or dist
+          path: ./packages/trader/dist
 
   deploy:
     needs: build
